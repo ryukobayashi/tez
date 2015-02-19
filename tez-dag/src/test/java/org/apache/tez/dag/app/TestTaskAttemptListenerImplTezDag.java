@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.yarn.api.records.ApplicationAccessType;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
@@ -50,6 +51,8 @@ public class TestTaskAttemptListenerImplTezDag {
   @Test(timeout = 5000)
   public void testGetTask() throws IOException {
     ApplicationId appId = ApplicationId.newInstance(1000, 1);
+    ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(appId, 1);
+    Credentials credentials = new Credentials();
     AppContext appContext = mock(AppContext.class);
     EventHandler eventHandler = mock(EventHandler.class);
     DAG dag = mock(DAG.class);
@@ -57,6 +60,8 @@ public class TestTaskAttemptListenerImplTezDag {
     Map<ApplicationAccessType, String> appAcls = new HashMap<ApplicationAccessType, String>();
     doReturn(eventHandler).when(appContext).getEventHandler();
     doReturn(dag).when(appContext).getCurrentDAG();
+    doReturn(appAttemptId).when(appContext).getApplicationAttemptId();
+    doReturn(credentials).when(appContext).getAppCredentials();
     doReturn(appAcls).when(appContext).getApplicationACLs();
     doReturn(amContainerMap).when(appContext).getAllContainers();
     NodeId nodeId = NodeId.newInstance("localhost", 0);
@@ -68,7 +73,7 @@ public class TestTaskAttemptListenerImplTezDag {
 
     TaskAttemptListenerImpTezDag taskAttemptListener =
         new TaskAttemptListenerImpTezDag(appContext, mock(TaskHeartbeatHandler.class),
-            mock(ContainerHeartbeatHandler.class), null);
+            mock(ContainerHeartbeatHandler.class), null, null);
     TezTaskCommunicatorImpl taskCommunicator = (TezTaskCommunicatorImpl)taskAttemptListener.getTaskCommunicator();
     TezTaskUmbilicalProtocol tezUmbilical = taskCommunicator.getUmbilical();
 
@@ -126,6 +131,8 @@ public class TestTaskAttemptListenerImplTezDag {
   @Test(timeout = 5000)
   public void testGetTaskMultiplePulls() throws IOException {
     ApplicationId appId = ApplicationId.newInstance(1000, 1);
+    ApplicationAttemptId appAttemptId = ApplicationAttemptId.newInstance(appId, 1);
+    Credentials credentials = new Credentials();
     AppContext appContext = mock(AppContext.class);
     EventHandler eventHandler = mock(EventHandler.class);
     DAG dag = mock(DAG.class);
@@ -133,8 +140,10 @@ public class TestTaskAttemptListenerImplTezDag {
     Map<ApplicationAccessType, String> appAcls = new HashMap<ApplicationAccessType, String>();
     doReturn(eventHandler).when(appContext).getEventHandler();
     doReturn(dag).when(appContext).getCurrentDAG();
+    doReturn(credentials).when(appContext).getAppCredentials();
     doReturn(appAcls).when(appContext).getApplicationACLs();
     doReturn(amContainerMap).when(appContext).getAllContainers();
+    doReturn(appAttemptId).when(appContext).getApplicationAttemptId();
     NodeId nodeId = NodeId.newInstance("localhost", 0);
     AMContainer amContainer = mock(AMContainer.class);
     Container container = mock(Container.class);
@@ -144,7 +153,7 @@ public class TestTaskAttemptListenerImplTezDag {
 
     TaskAttemptListenerImpTezDag taskAttemptListener =
         new TaskAttemptListenerImpTezDag(appContext, mock(TaskHeartbeatHandler.class),
-            mock(ContainerHeartbeatHandler.class), null);
+            mock(ContainerHeartbeatHandler.class), null, null);
     TezTaskCommunicatorImpl taskCommunicator = (TezTaskCommunicatorImpl)taskAttemptListener.getTaskCommunicator();
     TezTaskUmbilicalProtocol tezUmbilical = taskCommunicator.getUmbilical();
 
