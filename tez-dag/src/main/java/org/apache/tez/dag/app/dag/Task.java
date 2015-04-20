@@ -67,4 +67,5 @@ public interface Task {
 
   public void registerTezEvent(TezEvent tezEvent);
 
+  long getFirstAttemptStartTime();
 }

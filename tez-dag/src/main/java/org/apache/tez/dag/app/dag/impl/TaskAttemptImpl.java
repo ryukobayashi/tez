@@ -134,6 +134,7 @@ public class TaskAttemptImpl implements TaskAttempt,
   protected final AppContext appContext;
   private final TaskHeartbeatHandler taskHeartbeatHandler;
   private long launchTime = 0;
+  private long scheduleTime = 0;
   private long finishTime = 0;
   private String trackerName;
   private int httpPort;
@@ -657,6 +658,16 @@ public class TaskAttemptImpl implements TaskAttempt,
   }
 
   @Override
+  public long getScheduleTime() {
+    readLock.lock();
+    try {
+      return scheduleTime;
+    } finally {
+      readLock.unlock();
+    }
+  }
+
+  @Override
   public long getFinishTime() {
     readLock.lock();
     try {
@@ -1019,6 +1030,7 @@ public class TaskAttemptImpl implements TaskAttempt,
     public TaskAttemptStateInternal transition(TaskAttemptImpl ta, TaskAttemptEvent event) {
       TaskAttemptEventSchedule scheduleEvent = (TaskAttemptEventSchedule) event;
 
+      ta.scheduleTime = ta.clock.getTime();
       // TODO Creating the remote task here may not be required in case of
       // recovery.
 
