@@ -1533,6 +1533,49 @@ public class TestDagAwareYarnTaskScheduler {
     verify(mockRMClient).removeContainerRequest(reqv0t0);
   }
 
+  @Test(timeout = 30000)
+  public void testNegativeAvailableResourcesClamped() throws Exception {
+    AMRMClientAsyncWrapperForTest mockRMClient = spy(new AMRMClientAsyncWrapperForTest());
+
+    String appHost = "host";
+    int appPort = 0;
+    String appUrl = "url";
+    Configuration conf = new Configuration();
+
+    TaskSchedulerContext mockApp = setupMockTaskSchedulerContext(appHost, appPort, appUrl, conf);
+    TaskSchedulerContextDrainable drainableAppCallback = createDrainableContext(mockApp);
+    MockClock clock = new MockClock(1000);
+    NewTaskSchedulerForTest scheduler = new NewTaskSchedulerForTest(drainableAppCallback, mockRMClient, clock);
+
+    scheduler.initialize();
+    scheduler.start();
+    drainableAppCallback.drain();
+
+    // YARN reports negative available resources: should be clamped to 0
+    when(mockRMClient.getAvailableResources()).thenReturn(Resource.newInstance(-1024, -2));
+    Resource available = scheduler.getAvailableResources();
+    assertEquals(0, available.getMemory());
+    assertEquals(0, available.getVirtualCores());
+
+    // totalResources should remain uninitialized (0) since YARN reports negative resources
+    scheduler.getProgress();
+    assertEquals(0, scheduler.getTotalResources().getMemory());
+    assertEquals(0, scheduler.getTotalResources().getVirtualCores());
+
+    // Once YARN reports positive resources, totalResources should be initialized
+    when(mockRMClient.getAvailableResources()).thenReturn(Resource.newInstance(4000, 4));
+    scheduler.getProgress();
+    assertEquals(4000, scheduler.getTotalResources().getMemory());
+    assertEquals(4, scheduler.getTotalResources().getVirtualCores());
+
+    String appMsg = "success";
+    AppFinalStatus finalStatus =
+        new AppFinalStatus(FinalApplicationStatus.SUCCEEDED, appMsg, appUrl);
+    when(mockApp.getFinalAppStatus()).thenReturn(finalStatus);
+    scheduler.shutdown();
+    drainableAppCallback.drain();
+  }
+
   @Test
   public void testMinMaxContainerIdleMillisAreEqual() throws Exception {
     AMRMClientAsyncWrapperForTest mockRMClient = new AMRMClientAsyncWrapperForTest();
